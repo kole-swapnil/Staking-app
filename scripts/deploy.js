@@ -19,11 +19,16 @@ async function main() {
     "Deploying the contracts with the account:",
     await deployer.getAddress()
   );
-
+  //const feeData = await ethers.provider.getFeeData();
+  //console.log('feeData', feeData);
+  const feeData = {
+    gas: 8500000,           // Gas sent with each transaction (default: ~6700000)
+    gasPrice: 20000000000,
+  }
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
   const Token = await ethers.getContractFactory("Token");
-  const token = await Token.deploy();
+  const token = await Token.deploy(feeData);
   await token.deployed();
 
   console.log("Token address:", token.address);
