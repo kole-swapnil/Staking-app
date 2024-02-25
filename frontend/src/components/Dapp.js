@@ -1,29 +1,20 @@
 import React from "react";
-
-// We'll use ethers to interact with the Ethereum network and our contract
 import { ethers } from "ethers";
-
-// We import the contract's artifacts and address here, as we are going to be
-// using them with ethers
-import TokenArtifact from "../contracts/Token.json";
+import TokenArtifact from "../contracts/Staking_Token.json";
+import contractArtifact from "../contracts/Staking.json";
 import contractAddress from "../contracts/contract-address.json";
-
-// All the logic of this dapp is contained in the Dapp component.
-// These other components are just presentational ones: they don't have any
-// logic. They just render HTML.
 import { NoWalletDetected } from "./NoWalletDetected";
 import { ConnectWallet } from "./ConnectWallet";
 import { Loading } from "./Loading";
 import { Transfer } from "./Transfer";
 import { TransactionErrorMessage } from "./TransactionErrorMessage";
 import { WaitingForTransactionMessage } from "./WaitingForTransactionMessage";
+import { TransComplete } from "./TransComplete";
 import { NoTokensMessage } from "./NoTokensMessage";
 
-// This is the default id used by the Hardhat Network
-const HARDHAT_NETWORK_ID = '31337';
-
-// This is an error code that indicates that the user canceled a transaction
+const HARDHAT_NETWORK_ID = '11155111';
 const ERROR_CODE_TX_REJECTED_BY_USER = 4001;
+const milliEtherConv = ethers.BigNumber.from('1000000000000000');
 
 // This component is in charge of doing these things:
 //   1. It connects to the user's wallet
@@ -38,27 +29,21 @@ const ERROR_CODE_TX_REJECTED_BY_USER = 4001;
 export class Dapp extends React.Component {
   constructor(props) {
     super(props);
-
-    // We store multiple things in Dapp's state.
-    // You don't need to follow this pattern, but it's an useful example.
     this.initialState = {
-      // The info of the token (i.e. It's Name and symbol)
       tokenData: undefined,
-      // The user's address and balance
+      contractData: undefined,
       selectedAddress: undefined,
       balance: undefined,
-      // The ID about transactions being sent, and any possible error with them
+      stakedBalance: undefined,
+      rewardBalance: undefined,
       txBeingSent: undefined,
       transactionError: undefined,
       networkError: undefined,
     };
-
     this.state = this.initialState;
   }
 
   render() {
-    // Ethereum wallets inject the window.ethereum object. If it hasn't been
-    // injected, we instruct the user to install a wallet.
     if (window.ethereum === undefined) {
       return <NoWalletDetected />;
     }
@@ -80,13 +65,10 @@ export class Dapp extends React.Component {
       );
     }
 
-    // If the token data or the user's balance hasn't loaded yet, we show
-    // a loading component.
     if (!this.state.tokenData || !this.state.balance) {
       return <Loading />;
     }
 
-    // If everything is loaded, we render the application.
     return (
       <div className="container p-4">
         <div className="row">
@@ -97,7 +79,7 @@ export class Dapp extends React.Component {
             <p>
               Welcome <b>{this.state.selectedAddress}</b>, you have{" "}
               <b>
-                {this.state.balance.toString()} {this.state.tokenData.symbol}
+                {(this.state.balance/milliEtherConv)/1000} {this.state.tokenData.symbol}
               </b>
               .
             </p>
@@ -116,7 +98,6 @@ export class Dapp extends React.Component {
             {this.state.txBeingSent && (
               <WaitingForTransactionMessage txHash={this.state.txBeingSent} />
             )}
-
             {/* 
               Sending a transaction can fail in multiple ways. 
               If that happened, we show a message here.
@@ -126,7 +107,78 @@ export class Dapp extends React.Component {
                 message={this._getRpcErrorMessage(this.state.transactionError)}
                 dismiss={() => this._dismissTransactionError()}
               />
+            )
+            }
+          </div>
+        </div>
+
+        <div className="row">
+          <div className="col-12">
+            {/*
+              If the user has no tokens, we don't show the Transfer form
+            */}
+            {this.state.balance.eq(0) && (
+              <NoTokensMessage selectedAddress={this.state.selectedAddress} />
             )}
+
+            {/*
+              This component displays a form that the user can use to send a 
+              transaction and transfer some tokens.
+              The component doesn't have logic, it just calls the transferTokens
+              callback.
+            */}
+            {this.state.balance.gt(0) && (
+              <Transfer
+                transferTokens={(to, amount) =>
+                  this._transferTokens(to, amount)
+                }
+                tokenSymbol={this.state.tokenData.symbol}
+              />
+            )}
+          </div>
+        </div>
+        <br/>
+        <hr/>
+        <hr/>
+        <div className="row">
+          <div className="col-12">
+            <h1>
+              Staking App
+            </h1>
+            <p>Staked Balance: {this.state.contractData.totalStakedTokens/1000} Reward Rate: {this.state.contractData.rewardRate/1000}</p>
+            <p>
+              Welcome <b>{this.state.selectedAddress}</b>, you have{" "}
+              <b>
+                {this.state.contractData.stakedBalance/1000}
+              </b>
+              {" "}Staked Balance
+            </p>
+          </div>
+        </div>
+
+        <hr />
+
+        <div className="row">
+          <div className="col-12">
+            {/* 
+              Sending a transaction isn't an immediate action. You have to wait
+              for it to be mined.
+              If we are waiting for one, we show a message here.
+            */}
+            {this.state.txBeingSent && (
+              <WaitingForTransactionMessage txHash={this.state.txBeingSent} />
+            )}
+            {/* 
+              Sending a transaction can fail in multiple ways. 
+              If that happened, we show a message here.
+            */}
+            {this.state.transactionError && (
+              <TransactionErrorMessage
+                message={this._getRpcErrorMessage(this.state.transactionError)}
+                dismiss={() => this._dismissTransactionError()}
+              />
+            )
+            }
           </div>
         </div>
 
@@ -156,6 +208,7 @@ export class Dapp extends React.Component {
           </div>
         </div>
       </div>
+      
     );
   }
 
@@ -210,6 +263,7 @@ export class Dapp extends React.Component {
     // sample project, but you can reuse the same initialization pattern.
     this._initializeEthers();
     this._getTokenData();
+    this._getContractData(); 
     this._startPollingData();
   }
 
@@ -220,10 +274,16 @@ export class Dapp extends React.Component {
     // Then, we initialize the contract using that provider and the token's
     // artifact. You can do this same thing with your contracts.
     this._token = new ethers.Contract(
-      contractAddress.Token,
+      contractAddress.Staking_Token,
       TokenArtifact.abi,
       this._provider.getSigner(0)
     );
+    this._contractStaked = new ethers.Contract(
+      contractAddress.Staking,
+      contractArtifact.abi,
+      this._provider.getSigner(0)
+    );
+    console.log('>>>>>>>', this._token, this._contractStaked);
   }
 
   // The next two methods are needed to start and stop polling data. While
@@ -250,10 +310,16 @@ export class Dapp extends React.Component {
   async _getTokenData() {
     const name = await this._token.name();
     const symbol = await this._token.symbol();
-
+    console.log('>>?>.', name, symbol);
     this.setState({ tokenData: { name, symbol } });
   }
-
+  async _getContractData() {
+    const rewardRate = await this._contractStaked.REWARD_RATE();
+    const totalStakedTokens = await this._contractStaked.totalStakedTokens();
+    const stakedBalance = await this._contractStaked.stakedBalance(this.state.selectedAddress);
+    console.log('>>>>>>.', parseInt(rewardRate.div(milliEtherConv)._hex), parseInt(totalStakedTokens.div(milliEtherConv)._hex), parseInt(stakedBalance.div(milliEtherConv)._hex));
+    this.setState({ contractData: { rewardRate:parseInt(rewardRate.div(milliEtherConv)._hex), totalStakedTokens: parseInt(totalStakedTokens.div(milliEtherConv)._hex), stakedBalance: parseInt(stakedBalance.div(milliEtherConv)._hex)}});
+  }  
   async _updateBalance() {
     const balance = await this._token.balanceOf(this.state.selectedAddress);
     this.setState({ balance });
