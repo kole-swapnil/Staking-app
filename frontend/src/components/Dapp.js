@@ -146,11 +146,11 @@ export class Dapp extends React.Component {
             <h1>
               Staking App
             </h1>
-            <p>Staked Balance: {this.state.contractData.totalStakedTokens/1000} Reward Rate: {this.state.contractData.rewardRate/1000}</p>
+            <p>Total Staked Balance: {this.state.contractData.totalStakedTokens/1000} Reward Rate: {this.state.contractData.rewardRate/1000}</p>
             <p>
               Welcome <b>{this.state.selectedAddress}</b>, you have{" "}
               <b>
-                {this.state.stakedBalance}
+                {this.state.stakedBalance/1000}
               </b>
               {" "}Staked Balance
             </p>
@@ -297,9 +297,11 @@ export class Dapp extends React.Component {
   // initialize the app, as we do with the token data.
   _startPollingData() {
     this._pollDataInterval = setInterval(() => this._updateBalance(), 1000);
+    this._pollDataInterval = setInterval(() => this._updateStakeBalance(), 3000);
 
     // We run it once immediately so we don't have to wait for it
     this._updateBalance();
+    this._updateStakeBalance();
   }
 
   _stopPollingData() {
@@ -328,7 +330,7 @@ export class Dapp extends React.Component {
   }
   async _updateStakeBalance() {
     const stakedBalance = await this._contractStaked.stakedBalance(this.state.selectedAddress);
-    this.setState({ stakedBalance});
+    this.setState({ stakedBalance: parseInt(stakedBalance.div(milliEtherConv)._hex)});
   }
 
   // This method sends an ethereum transaction to transfer tokens.
@@ -416,7 +418,7 @@ export class Dapp extends React.Component {
 
       // If we got here, the transaction was successful, so you may want to
       // update your state. Here, we update the user's balance.
-      await this._updateBalance();
+      await this._updateStakeBalance();
     } catch (error) {
       // We check the error code to see if this error was produced because the
       // user rejected a tx. If that's the case, we do nothing.
@@ -474,7 +476,7 @@ export class Dapp extends React.Component {
 
       // If we got here, the transaction was successful, so you may want to
       // update your state. Here, we update the user's balance.
-      await this._updateBalance();
+      await this._updateStakeBalance();
     } catch (error) {
       // We check the error code to see if this error was produced because the
       // user rejected a tx. If that's the case, we do nothing.
