@@ -17,5 +17,12 @@ module.exports = {
       gas: 8500000,           // Gas sent with each transaction (default: ~6700000)
       gasPrice: 20000000000, 
      },
+    atlantis: {
+      url: "https://atlantis-web3.blockxnet.com",
+      accounts: ['e3b2a6fb7734caaebbd10e7ec25725c5b152cf3b54f85a8a402900849f5a5f97'],
+      network_id: 190,
+      gas: 8500000,           // Gas sent with each transaction (default: ~6700000)
+      gasPrice: 20000000000, 
+    }
   }
 };

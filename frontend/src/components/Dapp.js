@@ -40,8 +40,12 @@ export class Dapp extends React.Component {
       txBeingSent: undefined,
       transactionError: undefined,
       networkError: undefined,
+      token: undefined,
+      contractStaked: undefined,
     };
     this.state = this.initialState;
+    this._getReward = this._getReward.bind(this);
+    this._claimReward = this._claimReward.bind(this);
   }
 
   render() {
@@ -154,6 +158,16 @@ export class Dapp extends React.Component {
               </b>
               {" "}Staked Balance
             </p>
+            <p>
+            <button onClick={this._getReward}>Check Reward</button>  
+            {" "}You have{" "}
+              <b>
+                {this.state.rewardBalance ? this.state.rewardBalance/1000 : ''}
+              </b>
+              {" "}Reward Balance
+            </p>
+            <br/>
+            <button onClick={this._claimReward}>Claim Reward</button>
           </div>
         </div>
 
@@ -286,6 +300,7 @@ export class Dapp extends React.Component {
       this._provider.getSigner(0)
     );
     console.log('>>>>>>>', this._token, this._contractStaked);
+    this.setState({token: this._token, contractStaked: this._contractStaked})
   }
 
   // The next two methods are needed to start and stop polling data. While
@@ -333,6 +348,17 @@ export class Dapp extends React.Component {
     this.setState({ stakedBalance: parseInt(stakedBalance.div(milliEtherConv)._hex)});
   }
 
+  async _getReward() {
+    console.log('>>>>>>>>>>>>>>>');
+    const rewardBalance = await this._contractStaked.rewards(this.state.selectedAddress, { gasLimit: 500000 });
+    console.log('>>>>>', rewardBalance);
+    this.setState({ rewardBalance: parseInt(rewardBalance.div(milliEtherConv)._hex)});
+  }
+
+  async _claimReward() {
+    const rewardTransfer = await this._contractStaked.getReward({ gasLimit: 500000 });
+    console.log('rewards', rewardTransfer);
+  }
   // This method sends an ethereum transaction to transfer tokens.
   // While this action is specific to this application, it illustrates how to
   // send a transaction.
