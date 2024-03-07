@@ -7,9 +7,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract Staking is ReentrancyGuard {
     using SafeMath for uint256;
-    IERC20 public s_stakingToken;
 
-    uint public constant REWARD_RATE=1e17; //1 token/10 sec
+    uint public constant REWARD_RATE=274e12; //1 token/10 sec 274e12 //10%/annum
     uint public totalStakedTokens;
     uint public rewardPerTokenStored;
     uint public lastUpdatedTime;
@@ -25,16 +24,9 @@ contract Staking is ReentrancyGuard {
     event Withdrawn(address indexed user, uint256 indexed amount);
     event RewardsClaimed(address indexed user, uint256 indexed amount);
 
-    constructor(address _stakingToken){
-        s_stakingToken = IERC20(_stakingToken);
+    constructor() {
         lastTimeUnlocked = block.timestamp;
         lastUpdatedTime = block.timestamp;
-    }
-
-    function giveUserInitialBalance(address[] memory _buyers, uint _number) public {
-        for(uint8 i=1;i < _buyers.length; i++){
-            stakedBalance[_buyers[i]] += _number;
-        }
     }
 
     modifier updateUnlocked() {
@@ -62,6 +54,7 @@ contract Staking is ReentrancyGuard {
             emit Staked(msg.sender, _amount[i]);
         }
     }
+
     function rewardPerToken() public view returns(uint) {
         if (totalStakedTokens == 0) {
             return rewardPerTokenStored;
@@ -89,35 +82,35 @@ contract Staking is ReentrancyGuard {
         userRewardPerTokenPaid[account] = rewardPerTokenStored;
     }
 
-    function stake(uint amount) external nonReentrant updateReward(msg.sender) updateUnlocked(){
-        //require(amount<unlockedTokens[msg.sender], "Max Unlocked reached");
-        require(amount>0, "Amount must be greater than zero");
-        totalStakedTokens+=amount;
-        stakedBalance[msg.sender]+=amount;
-        //unlockedTokens[msg.sender]-=amount;
-        emit Staked(msg.sender, amount);
-
-        bool success = s_stakingToken.transferFrom(msg.sender, address(this), amount);
-        require(success, "Transfer Failed");
+    function stake() external payable nonReentrant updateReward(msg.sender) updateUnlocked(){
+        // require(amount<unlockedTokens[msg.sender], "Max Unlocked reached");
+        require(msg.value>0, "Amount must be greater than zero");
+        totalStakedTokens+=msg.value;
+        stakedBalance[msg.sender]+=msg.value;
+        // unlockedTokens[msg.sender]-=amount;
+        emit Staked(msg.sender, msg.value);
     }
+
     function withdraw(uint amount) external nonReentrant updateReward(msg.sender) updateUnlocked(){
-        require(amount>0, "Amount must be greater than zero");
+        require(amount>0 && amount<=stakedBalance[msg.sender], "Amount must be greater than zero");
         totalStakedTokens-=amount;
         stakedBalance[msg.sender]-=amount;
         unlockedTokens[msg.sender]-=amount;
         emit Withdrawn(msg.sender, amount);
-
-        bool success = s_stakingToken.transfer(msg.sender, amount); 
+        (bool success, ) = msg.sender.call{value: amount}("");
         require(success, "Transfer Failed");    
     }
 
     function getReward() external nonReentrant updateReward(msg.sender) {
         uint reward = rewards[msg.sender];
-        require(reward>0, "No rewards to claim");
+        require(reward>0 && reward < rewards[msg.sender], "No rewards to claim");
         rewards[msg.sender] = 0;
         emit RewardsClaimed(msg.sender, reward);
-
-        bool success = s_stakingToken.transfer(msg.sender, reward);
+        (bool success, ) = msg.sender.call{value: reward}("");
         require(success, "Transfer Failed");
+    }
+    fallback() external payable {
+        // This function is executed on a call to the contract if none of the other
+        // functions match the given function signature, or if no data is supplied at all
     }
 }

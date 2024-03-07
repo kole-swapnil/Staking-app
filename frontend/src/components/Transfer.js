@@ -1,6 +1,6 @@
 import React from "react";
 
-export function Transfer({ transferTokens, tokenSymbol }) {
+export function Transfer({ transferTokens }) {
   return (
     <div>
       <h4>Transfer</h4>
@@ -20,7 +20,7 @@ export function Transfer({ transferTokens, tokenSymbol }) {
         }}
       >
         <div className="form-group">
-          <label>Amount of {tokenSymbol}</label>
+          <label>Amount of BCX</label>
           <input
             className="form-control"
             type="number"
