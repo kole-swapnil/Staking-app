@@ -4,11 +4,12 @@ pragma solidity >=0.7.2 <0.9.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/contracts/access/Ownable.sol";
 
-contract Staking is ReentrancyGuard {
+contract Staking is ReentrancyGuard, Ownable {
     using SafeMath for uint256;
 
-    uint public constant REWARD_RATE=274e12; //1 token/10 sec 274e12 //10%/annum
+    uint public constant REWARD_RATE=1e16; //1 token/100 sec 274e12 //10%/annum
     uint public totalStakedTokens;
     uint public rewardPerTokenStored;
     uint public lastUpdatedTime;
@@ -45,7 +46,7 @@ contract Staking is ReentrancyGuard {
         unlockedTokens[msg.sender] += unlocked;
     }
     
-    function giveUserInitialBalance(address[] memory _buyers, uint[] memory _amount, uint[] memory _vestTime) public {
+    function giveUserInitialBalance(address[] memory _buyers, uint[] memory _amount, uint[] memory _vestTime) public onlyOwner(){
         for(uint8 i=0;i < _buyers.length; i++){
             stakedBalance[_buyers[i]] += _amount[i];
             totalStakedTokens+=_amount[i];
@@ -109,6 +110,13 @@ contract Staking is ReentrancyGuard {
         (bool success, ) = msg.sender.call{value: reward}("");
         require(success, "Transfer Failed");
     }
+
+    function withdrawBalance(uint balance) public payable nonReentrant onlyOwner() returns(bool) {
+        require(balance <= address(this).balance);
+        (bool success, ) = _msgSender().call{value: balance}("");
+        return success;
+    }
+    
     fallback() external payable {
         // This function is executed on a call to the contract if none of the other
         // functions match the given function signature, or if no data is supplied at all
