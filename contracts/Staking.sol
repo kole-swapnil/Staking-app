@@ -9,7 +9,7 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/contracts/access/
 contract Staking is ReentrancyGuard, Ownable {
     using SafeMath for uint256;
 
-    uint public constant REWARD_RATE=1e16; //1 token/100 sec 274e12 //10%/annum
+    uint public constant REWARD_RATE=274e12; //1 token/100 sec 274e12 //10%/annum
     uint public totalStakedTokens;
     uint public rewardPerTokenStored;
     uint public lastUpdatedTime;
