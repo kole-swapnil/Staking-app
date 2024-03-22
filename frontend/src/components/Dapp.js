@@ -13,7 +13,7 @@ import { WaitingForTransactionMessage } from "./WaitingForTransactionMessage";
 import { TransComplete } from "./TransComplete";
 import { NoTokensMessage } from "./NoTokensMessage";
 
-const HARDHAT_NETWORK_ID = '190';
+const HARDHAT_NETWORK_ID = '100';
 const ERROR_CODE_TX_REJECTED_BY_USER = 4001;
 const milliEtherConv = ethers.BigNumber.from('1000000000000000');
 
@@ -58,65 +58,6 @@ export class Dapp extends React.Component {
 
     return (
       <div className="container p-4">
-        <div className="row">
-          <div className="col-12">
-            <h1>
-              Staking App
-            </h1>
-            <p>
-              Welcome <b>{this.state.selectedAddress}</b>, you have{" "}
-              <b>
-                {(this.state.balance/milliEtherConv)/1000} BCX
-              </b>
-              .
-            </p>
-          </div>
-        </div>
-
-        <hr />
-
-        <div className="row">
-          <div className="col-12">
-            {/* 
-              Sending a transaction isn't an immediate action. You have to wait
-              for it to be mined.
-              If we are waiting for one, we show a message here.
-            */}
-            {this.state.txBeingSent && (
-              <WaitingForTransactionMessage txHash={this.state.txBeingSent} />
-            )}
-            {/* 
-              Sending a transaction can fail in multiple ways. 
-              If that happened, we show a message here.
-            */}
-            {this.state.transactionError && (
-              <TransactionErrorMessage
-                message={this._getRpcErrorMessage(this.state.transactionError)}
-                dismiss={() => this._dismissTransactionError()}
-              />
-            )
-            }
-          </div>
-        </div>
-
-        <div className="row">
-          <div className="col-12">
-            {/*
-              If the user has no tokens, we don't show the Transfer form
-            */}
-            {this.state.balance.eq(0) && (
-              <NoTokensMessage selectedAddress={this.state.selectedAddress} />
-            )}
-
-            {this.state.balance.gt(0) && (
-              <Transfer
-                transferTokens={(to, amount) =>
-                  this._transferTokens(to, amount)
-                }
-              />
-            )}
-          </div>
-        </div>
         <br/>
         <hr/>
         <div className="row">
@@ -124,7 +65,7 @@ export class Dapp extends React.Component {
             <h1>
               Staking App
             </h1>
-            <p>Total Staked Balance: {this.state.contractData.totalStakedTokens/1000} Reward Rate: {this.state.contractData.rewardRate/1000}</p>
+            <p>Total Staked Balance: {this.state.contractData.totalStakedTokens/1000} Reward Rate: {1e13/1e18}</p>
             <p>
               Welcome <b>{this.state.selectedAddress}</b>, you have{" "}
               <b>
@@ -136,7 +77,7 @@ export class Dapp extends React.Component {
             <button onClick={this._getReward}>Check Reward</button>  
             {" "}You have{" "}
               <b>
-                {this.state.rewardBalance ? this.state.rewardBalance/1000 : ''}
+                {this.state.rewardBalance/1000 ? this.state.rewardBalance/1000 : ''}
               </b>
               {" "}Reward Balance
             </p>
@@ -192,7 +133,7 @@ export class Dapp extends React.Component {
                   this._stake(amount)
                 }
                 withDraw = {(amount) => {this._withDraw(amount)}}
-                tokenSymbol={this.state.tokenData.symbol}
+                tokenSymbol='BCX'
               />
             )}
           </div>
@@ -318,7 +259,7 @@ export class Dapp extends React.Component {
 
   async _getReward() {
     console.log('>>>>>>>>>>>>>>>');
-    const rewards = await this._contractStaked.updateRewardFunc(this.state.selectedAddress, { gasLimit: 500000 });
+    const rewards = await this._contractStaked.updateRewardFunc({ gasLimit: 500000 });
     console.log('>>>>>', rewards);
     const rewardBalance = await this._contractStaked.rewards(this.state.selectedAddress, { gasLimit: 500000 });
     console.log('>>>>>', rewardBalance);
