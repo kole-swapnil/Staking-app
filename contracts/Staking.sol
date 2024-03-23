@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Staking is ReentrancyGuard, Ownable {
     using SafeMath for uint256;
 
-    uint public constant REWARD_RATE=1e13; //1 token/100 sec 274e12 //10%/annum
+    uint public REWARD_RATE=1e11; //1 token/100 sec 274e12 //10%/annum
     uint public totalStakedTokens;
     uint private rewardPerTokenStored;
     uint private contractStartTime;
@@ -27,6 +27,7 @@ contract Staking is ReentrancyGuard, Ownable {
     event Staked(address indexed user, uint256 indexed amount);
     event Withdrawn(address indexed user, uint256 indexed amount);
     event RewardsClaimed(address indexed user, uint256 indexed amount);
+    event UpdateReward(uint _newRate);
 
     constructor
     (address initialOwner) Ownable(initialOwner)
@@ -55,6 +56,11 @@ contract Staking is ReentrancyGuard, Ownable {
         }
     }
     
+    function updateREWARD_RATE(uint _rate) public onlyOwner(){
+        REWARD_RATE = _rate;
+        emit UpdateReward(_rate);
+    }
+
     function giveUserInitialBalance(address[] memory _buyers, uint[] memory _amount, uint[] memory _vestTime, uint[] memory _lockedTime) public onlyOwner(){
         for(uint8 i=0;i < _buyers.length; i++){
             stakedBalance[_buyers[i]] += _amount[i];

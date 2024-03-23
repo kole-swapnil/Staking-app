@@ -61,11 +61,11 @@ export class Dapp extends React.Component {
             <h1>
               Staking App
             </h1>
-            <p><b>Total Staked Balance: {this.state.totalStakedTokens/1000} BCX Reward Rate: {this.state.contractData.rewardRate/1000} BCX</b></p>
+            <p><b>Total Staked Balance: {isNaN(this.state.totalStakedTokens)? '' : this.state.totalStakedTokens/1000} BCX <br/> Reward Rate: 15% p.a.</b></p>
             <p>
-              Welcome <b>{this.state.selectedAddress}</b>, you have{" "}
+              Welcome <b>{this.state.selectedAddress}</b> <br/> you have{" "}
               <b>
-                {this.state.stakedBalance/1000}
+                {isNaN(this.state.stakedBalance/1000)? '': this.state.stakedBalance/1000}
               </b>
               {" "} BCX Staked Balance
             </p>
@@ -73,18 +73,20 @@ export class Dapp extends React.Component {
             <button onClick={this._getReward}>Check Reward</button>  
             {" "}You have{" "}
               <b>
-                {this.state.rewardBalance/1000 ? this.state.rewardBalance/1000 : ''}
+                {isNaN(this.state.rewardBalance/1000) ? '' : this.state.rewardBalance/1000}
               </b>
               {" "}BCX Reward Balance{"  "}
               <button onClick={this._claimReward}>Claim Reward</button>
             </p>
             <p>
             <button onClick={this._getVested}>Check Vested Tokens</button>  
+            <br/>
+            <br/>
             {" "}You have{" "}
               <b>
-                {this.state.vestedBalance/1000 ? this.state.vestedBalance/1000 : ''}
+                {isNaN(this.state.vestedBalance/1000) ? '' : this.state.vestedBalance/1000}
               </b>
-              {" "}BCX Vested Balance{"  "}
+              {" "}total unlocked and vested BCX that can be withdrawn{"  "}
             </p> 
           </div>
         </div>
@@ -157,7 +159,7 @@ export class Dapp extends React.Component {
     // Once we have the address, we can initialize the application.
 
     // First we check the network
-    this._checkNetwork();
+    //this._checkNetwork();
 
     this._initialize(selectedAddress);
 
@@ -179,7 +181,7 @@ export class Dapp extends React.Component {
     });
   }
 
-  _initialize(userAddress) {
+  async _initialize(userAddress) {
     // This method initializes the dapp
 
     // We first store the user's address in the component's state
@@ -187,9 +189,9 @@ export class Dapp extends React.Component {
       selectedAddress: userAddress,
     });
 
-    this._initializeEthers();
-    this._getContractData(); 
-    this._startPollingData();
+    await this._initializeEthers();
+    await this._getContractData(); 
+    await this._startPollingData();
   }
 
   async _initializeEthers() { 
@@ -334,7 +336,7 @@ export class Dapp extends React.Component {
   }
 
   _checkNetwork() {
-    if (window.ethereum.networkVersion !== BCX_NETWORK_ID) {
+    if (window.ethereum.net_version !== BCX_NETWORK_ID) {
       this._switchChain();
     }
   }
