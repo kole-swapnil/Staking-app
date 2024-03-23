@@ -32,7 +32,7 @@ export function StakingForm({ stakeTokens, withDraw, tokenSymbol }) {
           <input
             className="form-control"
             type="number"
-            step="1"
+            step="0.00000001"
             name="amount"
             placeholder="1"
             required
