@@ -29,8 +29,7 @@ contract Staking is ReentrancyGuard, Ownable {
     event RewardsClaimed(address indexed user, uint256 indexed amount);
 
     constructor
-    ()
-    // (address initialOwner) Ownable(initialOwner)
+    (address initialOwner) Ownable(initialOwner)
     {
         contractStartTime = block.timestamp;
     }
@@ -97,6 +96,7 @@ contract Staking is ReentrancyGuard, Ownable {
         require(msg.value>0, "Amount must be greater than zero");
         totalStakedTokens+=msg.value;
         stakedBalance[msg.sender]+=msg.value;
+        vestedTokens[msg.sender]+=msg.value;
         emit Staked(msg.sender, msg.value);
     }
 
@@ -112,7 +112,7 @@ contract Staking is ReentrancyGuard, Ownable {
 
     function getReward() external nonReentrant updateReward() {
         uint reward = rewards[msg.sender];
-        require(reward>0 && reward < rewards[msg.sender], "No rewards to claim");
+        require(reward>0, "No rewards to claim");
         rewards[msg.sender] = 0;
         emit RewardsClaimed(msg.sender, reward);
         (bool success, ) = msg.sender.call{value: reward}("");

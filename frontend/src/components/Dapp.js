@@ -22,6 +22,7 @@ export class Dapp extends React.Component {
       balance: undefined,
       stakedBalance: undefined,
       rewardBalance: undefined,
+      vestedBalance: undefined,
       txBeingSent: undefined,
       transactionError: undefined,
       networkError: undefined,
@@ -29,6 +30,7 @@ export class Dapp extends React.Component {
     };
     this.state = this.initialState;
     this._getReward = this._getReward.bind(this);
+    this._getVested = this._getVested.bind(this);
     this._claimReward = this._claimReward.bind(this);
   }
 
@@ -76,7 +78,14 @@ export class Dapp extends React.Component {
               {" "}BCX Reward Balance{"  "}
               <button onClick={this._claimReward}>Claim Reward</button>
             </p>
-            
+            <p>
+            <button onClick={this._getVested}>Check Vested Tokens</button>  
+            {" "}You have{" "}
+              <b>
+                {this.state.vestedBalance/1000 ? this.state.vestedBalance/1000 : ''}
+              </b>
+              {" "}BCX Vested Balance{"  "}
+            </p> 
           </div>
         </div>
 
@@ -198,11 +207,13 @@ export class Dapp extends React.Component {
     this._pollDataInterval = setInterval(() => this._updateBalance(), 1000);
     this._pollDataInterval = setInterval(() => this._updateStakeBalance(), 3000);
     this._pollDataInterval = setInterval(() => this._updateReward(), 3000);
+    this._pollDataInterval = setInterval(() => this._updateVested(), 3000);
 
     // We run it once immediately so we don't have to wait for it
     this._updateBalance();
     this._updateStakeBalance();
     this._updateReward();
+    this._updateVested();
   }
 
   _stopPollingData() { 
@@ -231,9 +242,20 @@ export class Dapp extends React.Component {
     this._updateReward();
   }
 
+  async _getVested() {
+    await this._contractStaked.updateUnlockedNew({ gasLimit: 500000 });
+    this._updateVested();
+  }
+
   async _updateReward() {
     const rewardBalance = await this._contractStaked.rewards(this.state.selectedAddress, { gasLimit: 500000 });
     this.setState({ rewardBalance: parseInt(rewardBalance.div(milliEtherConv)._hex)});
+  }
+
+  async _updateVested() {
+    const vestedBalance = await this._contractStaked.vestedTokens(this.state.selectedAddress, { gasLimit: 500000 });
+    console.log('???<<', parseInt(vestedBalance.toString())/milliEtherConv);
+    this.setState({ vestedBalance: parseInt(vestedBalance.toString())/milliEtherConv});
   }
 
   async _claimReward() {
